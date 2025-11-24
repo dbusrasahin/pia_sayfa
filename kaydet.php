@@ -1,6 +1,20 @@
 <?php
 include 'baglanti.php';
 
+// --- KONTROL BAŞLANGICI ---
+// durum.txt dosyasını oku (Dosya yoksa varsayılan 1 kabul et)
+$durum = file_exists('durum.txt') ? file_get_contents('durum.txt') : '1';
+
+// Eğer dosyanın içinde '0' yazıyorsa kapıyı kapat
+if (trim($durum) == '0') {
+    echo "<div style='text-align: center; margin-top: 50px; font-family: sans-serif;'>";
+    echo "<h1 style='color: red; font-size: 3em;'>🚫</h1>";
+    echo "<h1>Başvuru Dönemi Kapalı</h1>";
+    echo "<p>Şu an yeni başvuru alamıyoruz. Daha sonra tekrar deneyiniz.</p>";
+    echo "</div>";
+    exit();
+}
+
 if ($_POST) {
     $tc = $_POST['tc_kimlik'];
     $ad = $_POST['ad_soyad'];
