@@ -1,56 +1,62 @@
 <?php
-
-ob_start(); 
-
+// export.php - Güzelleştirilmiş Excel Çıktısı
 include 'baglanti.php';
 
+// Veritabanı kontrolü
+if (!$conn) { die("Veritabanı hatası!"); }
 
-if (!$conn) {
-    die("Veritabanı bağlantı hatası!");
-}
+// Dosya adını ve türünü belirle (Excel formatı)
+$dosya_adi = "basvurular_" . date('Y-m-d') . ".xls";
+header("Content-Type: application/vnd.ms-excel; charset=utf-8");
+header("Content-Disposition: attachment; filename=$dosya_adi");
+header("Pragma: no-cache");
+header("Expires: 0");
 
-
+// 1. Verileri Çek
 $sql = "SELECT * FROM basvurular ORDER BY created_at DESC";
 $result = $conn->query($sql);
 
+// Excel'in Türkçe karakterleri tanıması için meta etiketi
+echo '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">';
 
-ob_end_clean();
+// Tabloyu Başlat (Border=1 sayesinde çizgiler görünür)
+echo '<table border="1">';
 
+// 2. BAŞLIK SATIRI (Koyu renk ve ortalı)
+echo '<tr style="background-color: #f2f2f2; font-weight: bold;">';
+echo '<td>TC Kimlik</td>';
+echo '<td>Ad Soyad</td>';
+echo '<td>Email</td>';
+echo '<td>Eğitim</td>';
+echo '<td>Motivasyon</td>';
+echo '<td>Durum</td>';
+echo '<td>Tarih</td>';
+echo '</tr>';
 
-header('Content-Type: text/csv; charset=utf-8');
-header('Content-Disposition: attachment; filename=basvurular_listesi.csv');
-
-
-$output = fopen('php://output', 'w');
-
-
-fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-
-
-fputcsv($output, array('TC Kimlik', 'Ad Soyad', 'Email', 'Egitim', 'Motivasyon', 'Durum', 'Tarih'));
-
-
+// 3. VERİLERİ DÖK
 if ($result && $result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
+        echo '<tr>';
+        // TC (Metin olarak algılansın diye başına style ekledik)
+        echo '<td style="mso-number-format:\@">' . $row['tc_kimlik'] . '</td>';
+        echo '<td>' . $row['ad_soyad'] . '</td>';
+        echo '<td>' . $row['email'] . '</td>';
+        echo '<td>' . $row['egitim_durumu'] . '</td>';
+        echo '<td>' . $row['motivasyon_metni'] . '</td>';
         
-        $temiz_motivasyon = preg_replace("/[\r\n]+/", " ", $row['motivasyon_metni']);
+        // Duruma göre renklendirme (İsteğe bağlı güzellik)
+        $renk = "black";
+        if($row['durum'] == 'kabul') $renk = "green";
+        if($row['durum'] == 'ret') $renk = "red";
         
-        
-        fputcsv($output, array(
-            $row['tc_kimlik'],   
-            $row['ad_soyad'],
-            $row['email'],
-            $row['egitim_durumu'],
-            $temiz_motivasyon,
-            $row['durum'],
-            $row['created_at']
-        ));
+        echo '<td style="color:'.$renk.'; font-weight:bold;">' . strtoupper($row['durum']) . '</td>';
+        echo '<td>' . $row['created_at'] . '</td>';
+        echo '</tr>';
     }
 } else {
-    // Veri yoksa
-    fputcsv($output, array('Kayıtlı başvuru bulunamadı.'));
+    echo '<tr><td colspan="7">Kayıt bulunamadı.</td></tr>';
 }
 
-fclose($output);
+echo '</table>';
 exit();
 ?>
