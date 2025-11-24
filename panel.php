@@ -2,6 +2,9 @@
 // panel.php - SON VE HATASIZ SÜRÜM (Tüm Grafikler Dahil)
 
 include 'baglanti.php'; 
+// Başvuru Durumunu Dosyadan Oku
+$dosya_okunan = file_exists('durum.txt') ? file_get_contents('durum.txt') : '1';
+$basvuru_acik_mi = (trim($dosya_okunan) == '1');
 
 if ($conn->connect_error) {
     die("Veritabanı hatası: " . $conn->connect_error);
@@ -291,9 +294,10 @@ $json_data = json_encode($chart_data_package);
                     <h3>🔒 Başvuru Dönemi</h3>
                     <p>Başvuruları geçici olarak kapat/aç.</p>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-top: 15px;">
-                        <input type="checkbox" checked onclick="alert('Durum Değiştirildi')">
+                        <input type="checkbox" <?php echo $basvuru_acik_mi ? 'checked' : ''; ?> onchange="basvuruAyarla(this)">
                         <span style="font-weight:bold;">Başvurular Aktif</span>
                     </label>
+                    
                 </div>
                 <div class="setting-card">
                     <h3>🔑 Şifre Değiştir</h3>
@@ -405,6 +409,27 @@ $json_data = json_encode($chart_data_package);
                 method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u, old_pass:o, new_pass:n})
             }).then(r=>r.json()).then(d => alert(d.message));
         });
+
+        function basvuruAyarla(checkbox) {
+            const durum = checkbox.checked;
+    
+            fetch('ayar_guncelle.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ durum: durum })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+            // Başarılı oldu, kullanıcıya bilgi ver
+            // alert(durum ? "Açıldı" : "Kapandı"); // İstersen bu satırı açabilirsin
+                } else {
+                    alert("Hata oluştu!");
+                    checkbox.checked = !durum; // Hata varsa eski haline getir
+                }
+             })
+            .catch(err => console.error(err));
+        }
     </script>
 </body>
 </html>
