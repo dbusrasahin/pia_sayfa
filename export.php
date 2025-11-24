@@ -1,38 +1,43 @@
 <?php
-// export.php - Excel İndirme Dosyası
+
+ob_start(); 
+
 include 'baglanti.php';
 
-// Hata raporlamayı açalım ki sorun varsa görelim (Canlıda kapatılabilir)
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
-// Dosyanın Excel (CSV) olduğunu tarayıcıya bildir
+if (!$conn) {
+    die("Veritabanı bağlantı hatası!");
+}
+
+
+$sql = "SELECT * FROM basvurular ORDER BY created_at DESC";
+$result = $conn->query($sql);
+
+
+ob_end_clean();
+
+
 header('Content-Type: text/csv; charset=utf-8');
-header('Content-Disposition: attachment; filename=basvuru_listesi.csv');
+header('Content-Disposition: attachment; filename=basvurular_listesi.csv');
 
-// Çıktı kanalını aç
+
 $output = fopen('php://output', 'w');
 
-// Türkçe karakterler Excel'de bozulmasın diye BOM (Byte Order Mark) ekle
+
 fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-// 1. Satır: Sütun Başlıklarını Yaz
-fputcsv($output, array('ID', 'TC Kimlik', 'Ad Soyad', 'Email', 'Egitim', 'Motivasyon', 'Durum', 'Tarih'));
 
-// 2. Veritabanından Verileri Çek
-$sql = "SELECT * FROM basvurular ORDER BY id DESC";
-$result = $conn->query($sql);
+fputcsv($output, array('TC Kimlik', 'Ad Soyad', 'Email', 'Egitim', 'Motivasyon', 'Durum', 'Tarih'));
+
 
 if ($result && $result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
-        // Motivasyon metnindeki alt satıra geçme (enter) karakterlerini temizle
-        // Yoksa Excel tablosu bozulur
-        $temiz_motivasyon = str_replace(array("\r", "\n"), " ", $row['motivasyon_metni']);
         
-        // Satırı CSV dosyasına yaz
+        $temiz_motivasyon = preg_replace("/[\r\n]+/", " ", $row['motivasyon_metni']);
+        
+        
         fputcsv($output, array(
-            $row['id'],
-            $row['tc_kimlik'],
+            $row['tc_kimlik'],   
             $row['ad_soyad'],
             $row['email'],
             $row['egitim_durumu'],
@@ -41,9 +46,11 @@ if ($result && $result->num_rows > 0) {
             $row['created_at']
         ));
     }
+} else {
+    // Veri yoksa
+    fputcsv($output, array('Kayıtlı başvuru bulunamadı.'));
 }
 
-// Dosyayı kapat
 fclose($output);
 exit();
 ?>
